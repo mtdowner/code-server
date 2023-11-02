@@ -12,9 +12,8 @@ on:
     # Runs every Monday morning PST
     - cron: "17 15 * * 1"
 
-# Cancel in-progress runs for pull requests when developers push
-# additional changes, and serialize builds in branches.
-# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-concurrency-to-cancel-any-in-progress-job-or-run
+# Cancel in-progress runs for pull requests when developers push additional
+# changes, and serialize builds in branches.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -65,7 +64,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@9ab158e8597f3b310480b9a69402b419bc03dbd5
+        uses: aquasecurity/trivy-action@e5f43133f6e8736992c9f3c1b3296e24b37e17f2
         with:
           scan-type: "fs"
           scan-ref: "."

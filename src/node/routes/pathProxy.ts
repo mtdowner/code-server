@@ -3,7 +3,7 @@ import * as path from "path"
 import * as qs from "qs"
 import * as pluginapi from "../../../typings/pluginapi"
 import { HttpCode, HttpError } from "../../common/http"
-import { authenticated, ensureAuthenticated, redirect, self } from "../http"
+import { authenticated, ensureAuthenticated, ensureOrigin, redirect, self } from "../http"
 import { proxy as _proxy } from "../proxy"
 
 const getProxyTarget = (req: Request, passthroughPath?: boolean): string => {
@@ -11,7 +11,7 @@ const getProxyTarget = (req: Request, passthroughPath?: boolean): string => {
     return `http://0.0.0.0:${req.params.port}/${req.originalUrl}`
   }
   const query = qs.stringify(req.query)
-  return `http://0.0.0.0:${req.params.port}/${req.params[0] || ""}${query ? `?${query}` : ""}`
+  return encodeURI(`http://0.0.0.0:${req.params.port}${req.params[0] || ""}${query ? `?${query}` : ""}`)
 }
 
 export async function proxy(
@@ -50,6 +50,7 @@ export async function wsProxy(
     passthroughPath?: boolean
   },
 ): Promise<void> {
+  ensureOrigin(req)
   await ensureAuthenticated(req)
   _proxy.ws(req, req.ws, req.head, {
     ignorePath: true,

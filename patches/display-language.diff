@@ -14,12 +14,14 @@ We can remove this once upstream supports all language packs.
    one but is worse because it does not handle non-existent or empty files.
 7. Replace some caching and Node requires because code-server does not restart
    when changing the language unlike native Code.
+8. Make language extensions installable like normal rather than using the
+   special set/clear language actions.
 
 Index: code-server/lib/vscode/src/vs/server/node/serverServices.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/server/node/serverServices.ts
 +++ code-server/lib/vscode/src/vs/server/node/serverServices.ts
-@@ -216,6 +216,9 @@ export async function setupServerService
+@@ -234,6 +234,9 @@ export async function setupServerService
  		const channel = new ExtensionManagementChannel(extensionManagementService, (ctx: RemoteAgentConnectionContext) => getUriTransformer(ctx.remoteAuthority));
  		socketServer.registerChannel('extensions', channel);
  
@@ -42,7 +44,7 @@ Index: code-server/lib/vscode/src/vs/base/common/platform.ts
  export const LANGUAGE_DEFAULT = 'en';
  
  let _isWindows = false;
-@@ -83,17 +81,19 @@ if (typeof navigator === 'object' && !is
+@@ -90,17 +88,21 @@ if (typeof navigator === 'object' && !is
  	_isMobile = _userAgent?.indexOf('Mobi') >= 0;
  	_isWeb = true;
  
@@ -56,16 +58,18 @@ Index: code-server/lib/vscode/src/vs/base/common/platform.ts
 -
 -	_locale = configuredLocale || LANGUAGE_DEFAULT;
 +	_locale = LANGUAGE_DEFAULT;
- 
  	_language = _locale;
+ 	_platformLocale = navigator.language;
 +	const el = typeof document !== 'undefined' && document.getElementById('vscode-remote-nls-configuration');
 +	const rawNlsConfig = el && el.getAttribute('data-settings');
 +	if (rawNlsConfig) {
 +		try {
 +			const nlsConfig: NLSConfig = JSON.parse(rawNlsConfig);
++			const resolved = nlsConfig.availableLanguages['*'];
 +			_locale = nlsConfig.locale;
++			_platformLocale = nlsConfig.osLocale;
++			_language = resolved ? resolved : LANGUAGE_DEFAULT;
 +			_translationsConfigFile = nlsConfig._translationsConfigFile;
-+			_language = nlsConfig.availableLanguages['*'] || LANGUAGE_DEFAULT;
 +		} catch (error) { /* Oh well. */ }
 +	}
  }
@@ -125,7 +129,7 @@ Index: code-server/lib/vscode/src/vs/platform/environment/common/environmentServ
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/platform/environment/common/environmentService.ts
 +++ code-server/lib/vscode/src/vs/platform/environment/common/environmentService.ts
-@@ -110,7 +110,7 @@ export abstract class AbstractNativeEnvi
+@@ -101,7 +101,7 @@ export abstract class AbstractNativeEnvi
  			return URI.file(join(vscodePortable, 'argv.json'));
  		}
  
@@ -138,7 +142,7 @@ Index: code-server/lib/vscode/src/vs/server/node/remoteLanguagePacks.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/server/node/remoteLanguagePacks.ts
 +++ code-server/lib/vscode/src/vs/server/node/remoteLanguagePacks.ts
-@@ -30,6 +30,12 @@ export function getNLSConfiguration(lang
+@@ -32,6 +32,12 @@ export function getNLSConfiguration(lang
  				if (InternalNLSConfiguration.is(value)) {
  					value._languagePackSupport = true;
  				}
@@ -151,7 +155,7 @@ Index: code-server/lib/vscode/src/vs/server/node/remoteLanguagePacks.ts
  				return value;
  			});
  			_cache.set(key, result);
-@@ -44,3 +50,43 @@ export namespace InternalNLSConfiguratio
+@@ -46,3 +52,43 @@ export namespace InternalNLSConfiguratio
  		return candidate && typeof candidate._languagePackId === 'string';
  	}
  }
@@ -207,23 +211,23 @@ Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
  import { CharCode } from 'vs/base/common/charCode';
  import { getRemoteServerRootPath } from 'vs/platform/remote/common/remoteHosts';
  
-@@ -299,6 +300,8 @@ export class WebClientServer {
+@@ -337,6 +338,8 @@ export class WebClientServer {
+ 			callbackRoute: this._callbackRoute
+ 		};
  
- 		const base = relativeRoot(getOriginalUrl(req))
- 		const vscodeBase = relativePath(getOriginalUrl(req))
 +		const locale = this._environmentService.args.locale || await getLocaleFromConfig(this._environmentService.argvResource.fsPath);
 +		const nlsConfiguration = await getNLSConfiguration(locale, this._environmentService.userDataPath)
- 
- 		const workbenchWebConfiguration = {
- 			remoteAuthority,
-@@ -336,6 +339,7 @@ export class WebClientServer {
+ 		const nlsBaseUrl = this._productService.extensionsGallery?.nlsBaseUrl;
+ 		const values: { [key: string]: string } = {
+ 			WORKBENCH_WEB_CONFIGURATION: asJSON(workbenchWebConfiguration),
+@@ -345,6 +348,7 @@ export class WebClientServer {
  			WORKBENCH_NLS_BASE_URL: vscodeBase + (nlsBaseUrl ? `${nlsBaseUrl}${!nlsBaseUrl.endsWith('/') ? '/' : ''}${this._productService.commit}/${this._productService.version}/` : ''),
  			BASE: base,
  			VS_BASE: vscodeBase,
 +			NLS_CONFIGURATION: asJSON(nlsConfiguration),
  		};
  
- 
+ 		let data;
 Index: code-server/lib/vscode/src/vs/server/node/serverEnvironmentService.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/server/node/serverEnvironmentService.ts
@@ -248,9 +252,18 @@ Index: code-server/lib/vscode/src/vs/workbench/workbench.web.main.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/workbench.web.main.ts
 +++ code-server/lib/vscode/src/vs/workbench/workbench.web.main.ts
-@@ -119,8 +119,9 @@ import 'vs/workbench/contrib/logs/browse
- // Explorer
- import 'vs/workbench/contrib/files/browser/files.web.contribution';
+@@ -52,7 +52,7 @@ import 'vs/workbench/services/dialogs/br
+ import 'vs/workbench/services/host/browser/browserHostService';
+ import 'vs/workbench/services/lifecycle/browser/lifecycleService';
+ import 'vs/workbench/services/clipboard/browser/clipboardService';
+-import 'vs/workbench/services/localization/browser/localeService';
++import 'vs/workbench/services/localization/electron-sandbox/localeService';
+ import 'vs/workbench/services/path/browser/pathService';
+ import 'vs/workbench/services/themes/browser/browserHostColorSchemeService';
+ import 'vs/workbench/services/encryption/browser/encryptionService';
+@@ -116,8 +116,9 @@ registerSingleton(ILanguagePackService,
+ // Logs
+ import 'vs/workbench/contrib/logs/browser/logs.contribution';
  
 -// Localization
 -import 'vs/workbench/contrib/localization/browser/localization.contribution';
@@ -264,9 +277,9 @@ Index: code-server/lib/vscode/src/vs/platform/languagePacks/browser/languagePack
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/platform/languagePacks/browser/languagePacks.ts
 +++ code-server/lib/vscode/src/vs/platform/languagePacks/browser/languagePacks.ts
-@@ -6,18 +6,24 @@
+@@ -5,18 +5,24 @@
+ 
  import { CancellationTokenSource } from 'vs/base/common/cancellation';
- import { Language } from 'vs/base/common/platform';
  import { URI } from 'vs/base/common/uri';
 +import { ProxyChannel } from 'vs/base/parts/ipc/common/ipc';
  import { IExtensionGalleryService } from 'vs/platform/extensionManagement/common/extensionManagement';
@@ -289,8 +302,8 @@ Index: code-server/lib/vscode/src/vs/platform/languagePacks/browser/languagePack
 +		this.languagePackService = ProxyChannel.toService<ILanguagePackService>(remoteAgentService.getConnection()!.getChannel('languagePacks'))
  	}
  
- 	async getBuiltInExtensionTranslationsUri(id: string): Promise<URI | undefined> {
-@@ -73,6 +79,6 @@ export class WebLanguagePacksService ext
+ 	async getBuiltInExtensionTranslationsUri(id: string, language: string): Promise<URI | undefined> {
+@@ -72,6 +78,6 @@ export class WebLanguagePacksService ext
  
  	// Web doesn't have a concept of language packs, so we just return an empty array
  	getInstalledLanguages(): Promise<ILanguagePackItem[]> {
@@ -298,11 +311,11 @@ Index: code-server/lib/vscode/src/vs/platform/languagePacks/browser/languagePack
 +		return this.languagePackService.getInstalledLanguages()
  	}
  }
-Index: code-server/lib/vscode/src/vs/workbench/contrib/localization/electron-sandbox/localeService.ts
+Index: code-server/lib/vscode/src/vs/workbench/services/localization/electron-sandbox/localeService.ts
 ===================================================================
---- code-server.orig/lib/vscode/src/vs/workbench/contrib/localization/electron-sandbox/localeService.ts
-+++ code-server/lib/vscode/src/vs/workbench/contrib/localization/electron-sandbox/localeService.ts
-@@ -41,7 +41,8 @@ export class NativeLocaleService impleme
+--- code-server.orig/lib/vscode/src/vs/workbench/services/localization/electron-sandbox/localeService.ts
++++ code-server/lib/vscode/src/vs/workbench/services/localization/electron-sandbox/localeService.ts
+@@ -51,7 +51,8 @@ class NativeLocaleService implements ILo
  		@IProductService private readonly productService: IProductService
  	) { }
  
@@ -312,7 +325,7 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/localization/electron-san
  		try {
  			const content = await this.textFileService.read(this.environmentService.argvResource, { encoding: 'utf8' });
  
-@@ -68,9 +69,6 @@ export class NativeLocaleService impleme
+@@ -78,9 +79,6 @@ class NativeLocaleService implements ILo
  	}
  
  	private async writeLocaleValue(locale: string | undefined): Promise<boolean> {
@@ -322,3 +335,70 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/localization/electron-san
  		await this.jsonEditingService.write(this.environmentService.argvResource, [{ path: ['locale'], value: locale }], true);
  		return true;
  	}
+Index: code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extensionsActions.ts
+===================================================================
+--- code-server.orig/lib/vscode/src/vs/workbench/contrib/extensions/browser/extensionsActions.ts
++++ code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extensionsActions.ts
+@@ -335,9 +335,6 @@ export abstract class AbstractInstallAct
+ 		if (this.extension.isBuiltin) {
+ 			return;
+ 		}
+-		if (this.extensionsWorkbenchService.canSetLanguage(this.extension)) {
+-			return;
+-		}
+ 		if (this.extension.state === ExtensionState.Uninstalled && await this.extensionsWorkbenchService.canInstall(this.extension)) {
+ 			this.enabled = this.options.installPreReleaseVersion ? this.extension.hasPreReleaseVersion : this.extension.hasReleaseVersion;
+ 			this.updateLabel();
+@@ -715,7 +712,7 @@ export abstract class InstallInOtherServ
+ 		}
+ 
+ 		if (isLanguagePackExtension(this.extension.local.manifest)) {
+-			return true;
++			return false;
+ 		}
+ 
+ 		// Prefers to run on UI
+@@ -1803,17 +1800,6 @@ export class SetLanguageAction extends E
+ 	update(): void {
+ 		this.enabled = false;
+ 		this.class = SetLanguageAction.DisabledClass;
+-		if (!this.extension) {
+-			return;
+-		}
+-		if (!this.extensionsWorkbenchService.canSetLanguage(this.extension)) {
+-			return;
+-		}
+-		if (this.extension.gallery && language === getLocale(this.extension.gallery)) {
+-			return;
+-		}
+-		this.enabled = true;
+-		this.class = SetLanguageAction.EnabledClass;
+ 	}
+ 
+ 	override async run(): Promise<any> {
+@@ -1830,7 +1816,6 @@ export class ClearLanguageAction extends
+ 	private static readonly DisabledClass = `${ClearLanguageAction.EnabledClass} disabled`;
+ 
+ 	constructor(
+-		@IExtensionsWorkbenchService private readonly extensionsWorkbenchService: IExtensionsWorkbenchService,
+ 		@ILocaleService private readonly localeService: ILocaleService,
+ 	) {
+ 		super(ClearLanguageAction.ID, ClearLanguageAction.TITLE.value, ClearLanguageAction.DisabledClass, false);
+@@ -1840,17 +1825,6 @@ export class ClearLanguageAction extends
+ 	update(): void {
+ 		this.enabled = false;
+ 		this.class = ClearLanguageAction.DisabledClass;
+-		if (!this.extension) {
+-			return;
+-		}
+-		if (!this.extensionsWorkbenchService.canSetLanguage(this.extension)) {
+-			return;
+-		}
+-		if (this.extension.gallery && language !== getLocale(this.extension.gallery)) {
+-			return;
+-		}
+-		this.enabled = true;
+-		this.class = ClearLanguageAction.EnabledClass;
+ 	}
+ 
+ 	override async run(): Promise<any> {
