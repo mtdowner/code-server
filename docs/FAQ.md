@@ -14,6 +14,7 @@
 - [How do I install an extension manually?](#how-do-i-install-an-extension-manually)
 - [How do I use my own extensions marketplace?](#how-do-i-use-my-own-extensions-marketplace)
 - [Where are extensions stored?](#where-are-extensions-stored)
+- [Where is VS Code configuration stored?](#where-is-vs-code-configuration-stored)
 - [How can I reuse my VS Code configuration?](#how-can-i-reuse-my-vs-code-configuration)
 - [How does code-server decide what workspace or folder to open?](#how-does-code-server-decide-what-workspace-or-folder-to-open)
 - [How do I access my Documents/Downloads/Desktop folders in code-server on macOS?](#how-do-i-access-my-documentsdownloadsdesktop-folders-in-code-server-on-macos)
@@ -26,6 +27,7 @@
 - [Is multi-tenancy possible?](#is-multi-tenancy-possible)
 - [Can I use Docker in a code-server container?](#can-i-use-docker-in-a-code-server-container)
 - [How do I disable telemetry?](#how-do-i-disable-telemetry)
+- [What's the difference between code-server and Coder?](#whats-the-difference-between-code-server-and-coder)
 - [What's the difference between code-server and Theia?](#whats-the-difference-between-code-server-and-theia)
 - [What's the difference between code-server and OpenVSCode-Server?](#whats-the-difference-between-code-server-and-openvscode-server)
 - [What's the difference between code-server and GitHub Codespaces?](#whats-the-difference-between-code-server-and-github-codespaces)
@@ -33,6 +35,8 @@
 - [Are there community projects involving code-server?](#are-there-community-projects-involving-code-server)
 - [How do I change the port?](#how-do-i-change-the-port)
 - [How do I hide the coder/coder promotion in Help: Getting Started?](#how-do-i-hide-the-codercoder-promotion-in-help-getting-started)
+- [How do I disable the proxy?](#how-do-i-disable-the-proxy)
+- [How do I disable file download?](#how-do-i-disable-file-download)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 <!-- prettier-ignore-end -->
@@ -85,6 +89,12 @@ app (PWA):
 
 1. Start the editor
 2. Click the **plus** icon in the URL toolbar to install the PWA
+
+If you use Firefox, you can use the appropriate extension to install PWA.
+
+1. Go to the installation [website](https://addons.mozilla.org/en-US/firefox/addon/pwas-for-firefox/) of the add-on
+2. Add the add-on to Firefox
+3. Follow the os-specific instructions on how to install the runtime counterpart
 
 For other browsers, you'll have to remap keybindings for shortcuts to work.
 
@@ -167,10 +177,10 @@ If you own a marketplace that implements the VS Code Extension Gallery API, you
 can point code-server to it by setting `$EXTENSIONS_GALLERY`.
 This corresponds directly with the `extensionsGallery` entry in in VS Code's `product.json`.
 
-For example, to use the legacy Coder extensions marketplace:
+For example:
 
 ```bash
-export EXTENSIONS_GALLERY='{"serviceUrl": "https://extensions.coder.com/api"}'
+export EXTENSIONS_GALLERY='{"serviceUrl": "https://my-extensions/api"}'
 ```
 
 Though you can technically use Microsoft's marketplace in this manner, we
@@ -183,10 +193,20 @@ docs](https://github.com/VSCodium/vscodium/blob/master/DOCS.md#extensions--marke
 
 ## Where are extensions stored?
 
-Extensions are store, by default, to `~/.local/share/code-server/extensions`.
+Extensions are stored in `~/.local/share/code-server/extensions` by default.
 
-If you set the `XDG_DATA_HOME` environment variable, the data directory will be
-`$XDG_DATA_HOME/code-server/extensions`. In general, we try to follow the XDG directory spec.
+On Linux and macOS if you set the `XDG_DATA_HOME` environment variable, the
+extensions directory will be `$XDG_DATA_HOME/code-server/extensions`. In
+general, we try to follow the XDG directory spec.
+
+## Where is VS Code configuration stored?
+
+VS Code configuration such as settings and keybindings are stored in
+`~/.local/share/code-server` by default.
+
+On Linux and macOS if you set the `XDG_DATA_HOME` environment variable, the data
+directory will be `$XDG_DATA_HOME/code-server`. In general, we try to follow the
+XDG directory spec.
 
 ## How can I reuse my VS Code configuration?
 
@@ -362,6 +382,15 @@ Use the `--disable-telemetry` flag to disable telemetry.
 
 > We use the data collected only to improve code-server.
 
+## What's the difference between code-server and Coder?
+
+code-server and Coder are both applications that can be installed on any
+machine. The main difference is who they serve. Out of the box, code-server is
+simply VS Code in the browser while Coder is a tool for provisioning remote
+development environments via Terraform.
+
+code-server was built for individuals while Coder was built for teams. In Coder, you create Workspaces which can have applications like code-server. If you're looking for a team solution, you should reach for [Coder](https://github.com/coder/coder).
+
 ## What's the difference between code-server and Theia?
 
 At a high level, code-server is a patched fork of VS Code that runs in the
@@ -379,19 +408,13 @@ Theia doesn't allow you to reuse your existing VS Code config.
 ## What's the difference between code-server and OpenVSCode-Server?
 
 code-server and OpenVSCode-Server both allow you to access VS Code via a
-browser. The two projects also use their own [forks of VS Code](https://github.com/coder/vscode) to
-leverage modern VS Code APIs and stay up to date with the upsteam version.
+browser. OpenVSCode-Server is a direct fork of VS Code with changes comitted
+directly while code-server pulls VS Code in via a submodule and makes changes
+via patch files.
 
-However, OpenVSCode-Server is scoped at only making VS Code available in the web browser.
-code-server includes some other features:
-
-- password auth
-- proxy web ports
-- certificate support
-- plugin API
-- settings sync (coming soon)
-
-For more details, see [this discussion post](https://github.com/coder/code-server/discussions/4267#discussioncomment-1411583).
+However, OpenVSCode-Server is scoped at only making VS Code available as-is in
+the web browser. code-server contains additional changes to make the self-hosted
+experience better (see the next section for details).
 
 ## What's the difference between code-server and GitHub Codespaces?
 
@@ -399,8 +422,24 @@ Both code-server and GitHub Codespaces allow you to access VS Code via a
 browser. GitHub Codespaces, however, is a closed-source, paid service offered by
 GitHub and Microsoft.
 
-On the other hand, code-server is self-hosted, free, open-source, and
-can be run on any machine with few limitations.
+On the other hand, code-server is self-hosted, free, open-source, and can be run
+on any machine with few limitations.
+
+Specific changes include:
+
+- Password authentication
+- The ability to host at sub-paths
+- Self-contained web views that do not call out to Microsoft's servers
+- The ability to use your own marketplace and collect your own telemetry
+- Built-in proxy for accessing ports on the remote machine integrated into
+  VS Code's ports panel
+- Wrapper process that spawns VS Code on-demand and has a separate CLI
+- Notification when updates are available
+- [Some other things](https://github.com/coder/code-server/tree/main/patches)
+
+Some of these changes appear very unlikely to ever be adopted by Microsoft.
+Some may make their way upstream, further closing the gap, but at the moment it
+looks like there will always be some subtle differences.
 
 ## Does code-server have any security login validation?
 
@@ -425,3 +464,20 @@ There are two ways to change the port on which code-server runs:
 You can pass the flag `--disable-getting-started-override` to `code-server` or
 you can set the environment variable `CS_DISABLE_GETTING_STARTED_OVERRIDE=1` or
 `CS_DISABLE_GETTING_STARTED_OVERRIDE=true`.
+
+## How do I disable the proxy?
+
+You can pass the flag `--disable-proxy` to `code-server` or
+you can set the environment variable `CS_DISABLE_PROXY=1` or
+`CS_DISABLE_PROXY=true`.
+
+Note, this option currently only disables the proxy routes to forwarded ports, including
+the domain and path proxy routes over HTTP and WebSocket; however, it does not
+disable the automatic port forwarding in the VS Code workbench itself. In other words,
+user will still see the Ports tab and notifications, but will not be able to actually
+use access the ports. It is recommended to set `remote.autoForwardPorts` to `false`
+when using the option.
+
+## How do I disable file download?
+
+You can pass the flag `--disable-file-downloads` to `code-server`

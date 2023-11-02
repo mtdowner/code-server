@@ -30,7 +30,7 @@ includes installing instructions based on your operating system.
 ## Node.js version
 
 We use the same major version of Node.js shipped with Code's remote, which is
-currently `16.x`. VS Code also [lists Node.js
+currently `18.x`. VS Code also [lists Node.js
 requirements](https://github.com/microsoft/vscode/wiki/How-to-Contribute#prerequisites).
 
 Using other versions of Node.js [may lead to unexpected
@@ -79,7 +79,7 @@ Proceed to [installing](#installing)
 ## FreeBSD
 
 ```sh
-pkg install -y git python npm-node16 pkgconf
+pkg install -y git python npm-node18 pkgconf
 pkg install -y libinotify
 ```
 
@@ -97,7 +97,7 @@ code-server
 # Now visit http://127.0.0.1:8080. Your password is in ~/.config/code-server/config.yaml
 ```
 
-A `postinstall.sh` script will attempt to run. Select your terminal (e.g., Git bash) as the default application for `.sh` files. If an additional dialog does not appear, run the install command again.
+A `postinstall.sh` script will attempt to run. Select your terminal (e.g., Git bash) as the default shell for npm run-scripts. If an additional dialog does not appear, run the install command again.
 
 If the `code-server` command is not found, you'll need to [add a directory to your PATH](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/). To find the directory, use the following command:
 

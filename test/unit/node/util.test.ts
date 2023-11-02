@@ -491,22 +491,6 @@ describe("isDirectory", () => {
   })
 })
 
-describe("humanPath", () => {
-  it("should return an empty string if no path provided", () => {
-    const mockHomedir = "/home/coder"
-    const actual = util.humanPath(mockHomedir)
-    const expected = ""
-    expect(actual).toBe(expected)
-  })
-  it("should replace the homedir with ~", () => {
-    const mockHomedir = "/home/coder"
-    const path = `${mockHomedir}/code-server`
-    const actual = util.humanPath(mockHomedir, path)
-    const expected = "~/code-server"
-    expect(actual).toBe(expected)
-  })
-})
-
 describe("isWsl", () => {
   const testName = "wsl"
 
@@ -599,5 +583,43 @@ describe("constructOpenOptions", () => {
     expect(args).toStrictEqual(["/c", "start", '""', "/b"])
     expect(command).toBe("cmd.exe")
     expect(urlSearch).toBe("?q=^&test")
+  })
+})
+
+describe("splitOnFirstEquals", () => {
+  const tests = [
+    {
+      name: "empty",
+      key: "",
+      value: "",
+    },
+    {
+      name: "split on first equals",
+      key: "foo",
+      value: "bar",
+    },
+    {
+      name: "split on first equals even with multiple equals",
+      key: "foo",
+      value: "bar=baz",
+    },
+    {
+      name: "split with empty value",
+      key: "foo",
+      value: "",
+    },
+    {
+      name: "split with no value",
+      key: "foo",
+      value: undefined,
+    },
+  ]
+  tests.forEach((test) => {
+    it("should ${test.name}", () => {
+      const input = test.key && typeof test.value !== "undefined" ? `${test.key}=${test.value}` : test.key
+      const [key, value] = util.splitOnFirstEquals(input)
+      expect(key).toStrictEqual(test.key)
+      expect(value).toStrictEqual(test.value || undefined)
+    })
   })
 })

@@ -20,6 +20,9 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "code-server.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- if .Values.podAnnotations }}
+      annotations: {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- if .Values.hostnameOverride }}
@@ -102,6 +105,7 @@ spec:
           {{- range .Values.extraSecretMounts }}
           - name: {{ .name }}
             mountPath: {{ .mountPath }}
+            subPath: {{ .subPath | default "" }}
             readOnly: {{ .readOnly }}
           {{- end }}
           {{- range .Values.extraVolumeMounts }}
@@ -114,6 +118,11 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          {{- range .Values.extraPorts }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+              protocol: {{ .protocol }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /

@@ -14,10 +14,12 @@
 - [Accessing web services](#accessing-web-services)
   - [Using a subdomain](#using-a-subdomain)
   - [Using a subpath](#using-a-subpath)
+  - [Using your own proxy](#using-your-own-proxy)
   - [Stripping `/proxy/<port>` from the request path](#stripping-proxyport-from-the-request-path)
   - [Proxying to create a React app](#proxying-to-create-a-react-app)
   - [Proxying to a Vue app](#proxying-to-a-vue-app)
   - [Proxying to an Angular app](#proxying-to-an-angular-app)
+  - [Proxying to a Svelte app](#proxying-to-a-svelte-app)
 - [SSH into code-server on VS Code](#ssh-into-code-server-on-vs-code)
   - [Option 1: cloudflared tunnel](#option-1-cloudflared-tunnel)
   - [Option 2: ngrok tunnel](#option-2-ngrok-tunnel)
@@ -137,9 +139,9 @@ sudo apt install caddy
 1. Replace `/etc/caddy/Caddyfile` using `sudo` so that the file looks like this:
 
    ```text
-   mydomain.com
-
-   reverse_proxy 127.0.0.1:8080
+   mydomain.com {
+     reverse_proxy 127.0.0.1:8080
+   }
    ```
 
    If you want to serve code-server from a sub-path, you can do so as follows:
@@ -189,7 +191,7 @@ At this point, you should be able to access code-server via
 
        location / {
          proxy_pass http://localhost:8080/;
-         proxy_set_header Host $host;
+         proxy_set_header Host $http_host;
          proxy_set_header Upgrade $http_upgrade;
          proxy_set_header Connection upgrade;
          proxy_set_header Accept-Encoding gzip;
@@ -316,12 +318,32 @@ To set your domain, start code-server with the `--proxy-domain` flag:
 code-server --proxy-domain <domain>
 ```
 
-Now you can browse to `<port>.<domain>`. Note that this uses the host header, so
-ensure your reverse proxy (if you're using one) forwards that information.
+For instance, if you have code-server exposed on `domain.tld` and a Python
+server running on port 8080 of the same machine code-server is running on, you
+could run code-server with `--proxy-domain domain.tld` and access the Python
+server via `8080.domain.tld`.
+
+Note that this uses the host header, so ensure your reverse proxy (if you're
+using one) forwards that information.
 
 ### Using a subpath
 
-Simply browse to `/proxy/<port>/`.
+Simply browse to `/proxy/<port>/`. For instance, if you have code-server
+exposed on `domain.tld` and a Python server running on port 8080 of the same
+machine code-server is running on, you could access the Python server via
+`domain.tld/proxy/8000`.
+
+### Using your own proxy
+
+You can make extensions and the ports panel use your own proxy by setting
+`VSCODE_PROXY_URI`. For example if you set
+`VSCODE_PROXY_URI=https://{{port}}.kyle.dev` when an application is detected
+running on port 3000 of the same machine code-server is running on the ports
+panel will create a link to https://3000.kyle.dev instead of pointing to the
+built-in subpath-based proxy.
+
+Note: relative paths are also supported i.e.
+`VSCODE_PROXY_URI=./proxy/{{port}}`
 
 ### Stripping `/proxy/<port>` from the request path
 
@@ -392,6 +414,27 @@ In order to use code-server's built-in proxy with Angular, you need to make the 
 2. add `--serve-path /absproxy/4200` to `ng serve` in your `package.json`
 
 For additional context, see [this GitHub Discussion](https://github.com/coder/code-server/discussions/5439#discussioncomment-3371983).
+
+### Proxying to a Svelte app
+
+In order to use code-server's built-in proxy with Svelte, you need to make the following changes in your app:
+
+1. Add `svelte.config.js` if you don't already have one
+2. Update the values to match this (you can use any free port):
+
+```js
+const config = {
+  kit: {
+    paths: {
+      base: "/absproxy/5173",
+    },
+  },
+}
+```
+
+3. Access app at `<code-server-root>/absproxy/5173/` e.g. `http://localhost:8080/absproxy/5173/
+
+For additional context, see [this Github Issue](https://github.com/sveltejs/kit/issues/2958)
 
 ## SSH into code-server on VS Code
 

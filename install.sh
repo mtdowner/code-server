@@ -46,7 +46,7 @@ Usage:
       Sets the prefix used by standalone release archives. Defaults to ~/.local
       The release is unarchived into ~/.local/lib/code-server-X.X.X
       and the binary symlinked into ~/.local/bin/code-server
-      To install system wide pass ---prefix=/usr/local
+      To install system wide pass --prefix=/usr/local
 
   --rsh <bin>
       Specifies the remote shell for remote installation. Defaults to ssh.
@@ -441,7 +441,7 @@ install_npm() {
     return
   fi
   echoerr "Please install npm to install code-server!"
-  echoerr "You will need at least node v12 and a few C dependencies."
+  echoerr "You will need at least node v18 and a few C dependencies."
   echoerr "See the docs https://coder.com/docs/code-server/latest/install#npm"
 
   exit 1

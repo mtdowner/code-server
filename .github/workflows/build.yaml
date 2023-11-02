@@ -28,10 +28,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run prettier with actionsx/prettier
-        uses: actionsx/prettier@v2
+        uses: actionsx/prettier@v3
         with:
           args: --check --loglevel=warn .
 
@@ -41,20 +41,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v26.1
+        uses: tj-actions/changed-files@v39
         with:
           files: |
             docs/**
 
-      - name: Install Node.js v16
+      - name: Install Node.js v18
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
           cache: "yarn"
 
       - name: Install doctoc
@@ -70,20 +70,20 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v26.1
+        uses: tj-actions/changed-files@v39
         with:
           files: |
             ci/helm-chart/**
 
       - name: Install helm
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: azure/setup-helm@v3.4
+        uses: azure/setup-helm@v3.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -101,13 +101,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v26.1
+        uses: tj-actions/changed-files@v39
         with:
           files: |
             **/*.ts
@@ -115,11 +115,11 @@ jobs:
           files_ignore: |
             lib/vscode/**
 
-      - name: Install Node.js v16
+      - name: Install Node.js v18
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
       - name: Fetch dependencies from cache
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -139,17 +139,81 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         run: yarn lint:ts
 
+  lint-actions:
+    name: Lint GitHub Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Check workflow files
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/7fdc9630cc360ea1a469eed64ac6d78caeda1234/scripts/download-actionlint.bash)
+          ./actionlint -color -shellcheck= -ignore "set-output"
+        shell: bash
+
+  test-unit:
+    name: Run unit tests
+    runs-on: ubuntu-20.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            **/*.ts
+          files_ignore: |
+            lib/vscode/**
+
+      - name: Install Node.js v18
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Fetch dependencies from cache
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: cache-node-modules
+        uses: actions/cache@v3
+        with:
+          path: "**/node_modules"
+          key: yarn-build-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-build-
+
+      - name: Install dependencies
+        if: steps.changed-files.outputs.any_changed == 'true' && steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: SKIP_SUBMODULE_DEPS=1 yarn --frozen-lockfile
+
+      - name: Run unit tests
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: yarn test:unit
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+        if: success()
+
   build:
     name: Build code-server
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Install system dependencies
+        run: sudo apt update && sudo apt install -y libkrb5-dev
 
       - name: Install quilt
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -160,32 +224,34 @@ jobs:
       - name: Patch Code
         run: quilt push -a
 
-      - name: Install Node.js v16
+      - name: Install Node.js v18
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
         uses: actions/cache@v3
         with:
           path: "**/node_modules"
-          key: yarn-build-${{ hashFiles('**/yarn.lock') }}
+          key: yarn-build-code-server-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
-            yarn-build-
+            yarn-build-code-server-
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: yarn --frozen-lockfile
 
       - name: Build code-server
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: yarn build
 
       # Get Code's git hash.  When this changes it means the content is
       # different and we need to rebuild.
       - name: Get latest lib/vscode rev
         id: vscode-rev
-        run: echo "::set-output name=rev::$(git rev-parse HEAD:./lib/vscode)"
+        run: echo "rev=$(git rev-parse HEAD:./lib/vscode)" >> $GITHUB_OUTPUT
 
       # We need to rebuild when we have a new version of Code, when any of
       # the patches changed, or when the code-server version changes (since
@@ -204,19 +270,6 @@ jobs:
         if: steps.cache-vscode.outputs.cache-hit != 'true'
         run: yarn build:vscode
 
-      # Our code imports code from VS Code's `out` directory meaning VS Code
-      # must be built before running these tests.
-      # TODO: Move to its own step?
-      - name: Run code-server unit tests
-        run: yarn test:unit
-        if: success()
-
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-        if: success()
-
       # The release package does not contain any native modules
       # and is neutral to architecture/os/libc version.
       - name: Create release package
@@ -233,65 +286,6 @@ jobs:
           name: npm-package
           path: ./package.tar.gz
 
-  npm:
-    name: Publish npm package
-    # the npm-package gets uploaded as an artifact in Build
-    # so we need that to complete before this runs
-    needs: build
-    # This environment "npm" requires someone from
-    # coder/code-server-reviewers to approve the PR before this job runs.
-    environment: npm
-    # Only run if PR comes from base repo or event is not a PR
-    # Reason: forks cannot access secrets and this will always fail
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        id: download
-        with:
-          name: "npm-package"
-          path: release-npm-package
-
-      - name: Run ./ci/steps/publish-npm.sh
-        run: yarn publish:npm
-        env:
-          # NOTE@jsjoeio
-          # This is because npm enforces semantic versioning
-          # so it has to be a valid version. We only use this
-          # to publish dev versions from prs
-          # and beta versions from main.
-          VERSION: "0.0.0"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # NOTE@jsjoeio
-          # NPM_ENVIRONMENT intentionally not set here.
-          # Instead, itis determined in publish-npm.sh script
-          # using GITHUB environment variables
-
-      - name: Comment npm information
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          GITHUB_TOKEN: ${{ github.token }}
-          header: npm-dev-build
-          message: |
-            ✨ code-server dev build published to npm for PR #${{ github.event.number }}!
-            * _Last publish status_: success
-            * _Commit_: ${{ github.event.pull_request.head.sha }}
-
-            To install in a local project, run:
-            ```shell-session
-            npm install @coder/code-server-pr@${{ github.event.number }}
-            ```
-
-            To install globally, run:
-            ```shell-session
-            npm install -g @coder/code-server-pr@${{ github.event.number }}
-            ```
-
   test-e2e:
     name: Run e2e tests
     needs: build
@@ -299,12 +293,15 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node.js v16
+      - name: Install system dependencies
+        run: sudo apt update && sudo apt install -y libkrb5-dev
+
+      - name: Install Node.js v18
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
@@ -336,7 +333,7 @@ jobs:
           ./test/node_modules/.bin/playwright install
 
       - name: Run end-to-end tests
-        run: CODE_SERVER_TEST_ENTRY=./release yarn test:e2e --global-timeout 840000
+        run: CODE_SERVER_TEST_ENTRY=./release yarn test:e2e
 
       - name: Upload test artifacts
         if: always()
@@ -355,12 +352,15 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node.js v16
+      - name: Install system dependencies
+        run: sudo apt update && sudo apt install -y libkrb5-dev
+
+      - name: Install Node.js v18
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
@@ -392,7 +392,7 @@ jobs:
           ./test/node_modules/.bin/playwright install
 
       - name: Cache Caddy
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: caddy-cache
         with:
           path: |
@@ -405,7 +405,7 @@ jobs:
         if: steps.caddy-cache.outputs.cache-hit != 'true'
         run: |
           gh release download v2.5.2 --repo caddyserver/caddy --pattern "caddy_2.5.2_linux_amd64.tar.gz"
-          mkdir -p ~/.cache/caddy 
+          mkdir -p ~/.cache/caddy
           tar -xzf caddy_2.5.2_linux_amd64.tar.gz --directory ~/.cache/caddy
 
       - name: Start Caddy

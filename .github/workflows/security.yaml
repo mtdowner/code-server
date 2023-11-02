@@ -12,9 +12,8 @@ on:
     # Runs every Monday morning PST
     - cron: "17 15 * * 1"
 
-# Cancel in-progress runs for pull requests when developers push
-# additional changes, and serialize builds in branches.
-# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-concurrency-to-cancel-any-in-progress-job-or-run
+# Cancel in-progress runs for pull requests when developers push additional
+# changes, and serialize builds in branches.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -26,30 +25,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Node.js v16
+      - name: Install Node.js v18
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
-      - name: Fetch dependencies from cache
-        id: cache-yarn
-        uses: actions/cache@v3
-        with:
-          path: "**/node_modules"
-          key: yarn-build-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-build-
+      - name: Audit yarn for vulnerabilities
+        run: yarn audit
+        if: success()
 
-      - name: Install dependencies
-        if: steps.cache-yarn.outputs.cache-hit != 'true'
-        run: SKIP_SUBMODULE_DEPS=1 yarn --frozen-lockfile
-
-      - name: Audit for vulnerabilities
-        run: yarn _audit
+      - name: Audit npm for vulnerabilities
+        run: npm shrinkwrap && npm audit
         if: success()
 
   trivy-scan-repo:
@@ -60,12 +50,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@9ab158e8597f3b310480b9a69402b419bc03dbd5
+        uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -90,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

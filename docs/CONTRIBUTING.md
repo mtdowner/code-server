@@ -11,9 +11,10 @@
   - [Version updates to Code](#version-updates-to-code)
   - [Patching Code](#patching-code)
   - [Build](#build)
+    - [Creating a Standalone Release](#creating-a-standalone-release)
   - [Troubleshooting](#troubleshooting)
     - [I see "Forbidden access" when I load code-server in the browser](#i-see-forbidden-access-when-i-load-code-server-in-the-browser)
-  - ["Can only have one anonymous define call per script"](#can-only-have-one-anonymous-define-call-per-script)
+    - ["Can only have one anonymous define call per script"](#can-only-have-one-anonymous-define-call-per-script)
   - [Help](#help)
 - [Test](#test)
   - [Unit tests](#unit-tests)
@@ -36,7 +37,7 @@ for [VS
 Code](https://github.com/Microsoft/vscode/wiki/How-to-Contribute#prerequisites).
 Here is what is needed:
 
-- `node` v16.x
+- `node` v18.x
 - `git` v2.x or greater
 - [`git-lfs`](https://git-lfs.github.com)
 - [`yarn`](https://classic.yarnpkg.com/en/)
@@ -62,7 +63,7 @@ Here is what is needed:
 If you're developing code-server on Linux, make sure you have installed or install the following dependencies:
 
 ```shell
-sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev python-is-python3
+sudo apt-get install build-essential g++ libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev python-is-python3
 ```
 
 These are required by Code. See [their Wiki](https://github.com/microsoft/vscode/wiki/How-to-Contribute#prerequisites) for more information.
@@ -170,6 +171,22 @@ yarn package
 > If you need your builds to support older distros, run the build commands
 > inside a Docker container with all the build requirements installed.
 
+#### Creating a Standalone Release
+
+Part of the build process involves creating standalone releases. At the time of
+writing, we do this for the following platforms/architectures:
+
+- Linux amd64 (.tar.gz, .deb, and .rpm)
+- Linux arm64 (.tar.gz, .deb, and .rpm)
+- Linux arm7l (.tar.gz)
+- Linux armhf.deb
+- Linux armhf.rpm
+- macOS amd64 (Intel-based)
+
+Currently, these are compiled in CI using the `yarn release-standalone` command
+in the `release.yaml` workflow. We then upload them to the draft release and
+distribute via GitHub Releases.
+
 ### Troubleshooting
 
 #### I see "Forbidden access" when I load code-server in the browser
@@ -178,7 +195,7 @@ This means your patches didn't apply correctly. We have a patch to remove the au
 
 Try popping off the patches with `quilt pop -a` and reapplying with `quilt push -a`.
 
-### "Can only have one anonymous define call per script"
+#### "Can only have one anonymous define call per script"
 
 Code might be trying to use a dev or prod HTML in the wrong context. You can try re-running code-server and setting `VSCODE_DEV=1`.
 
