@@ -22,17 +22,99 @@ Code v99.99.999
 
 ## Unreleased
 
-Code v1.79.2
+## [4.18.0](https://github.com/coder/code-server/releases/tag/v4.18.0) - 2023-10-20
+
+Code v1.83.1
+
+### Changed
+
+- Updated to Code 1.83.1.
+
+## [4.17.1](https://github.com/coder/code-server/releases/tag/v4.17.1) - 2023-09-29
+
+Code v1.82.2
 
 ### Fixed
 
-- Fix being unable to launch multiple instances of code-server for different
-  users.
+- Make secret storage persistent. For example, logging in with GitHub should
+  persist between browser refreshes and code-server restarts.
+- Issues with argon2 on arm builds should be fixed now.
+
+## [4.17.0](https://github.com/coder/code-server/releases/tag/v4.17.0) - 2023-09-22
+
+Code v1.82.2
+
+### Added
+
+- Japanese locale.
+- `CODE_SERVER_HOST` environment variable.
+
+### Changed
+
+- Update to Code 1.82.2. This includes an update to Node 18, which also means
+  that the minimum glibc is now 2.28. If you need to maintain a lower glibc then
+  you can take a version of Node 18 that is compiled with a lower glibc and use
+  that to build code-server (or at a minimum rebuild the native modules).
+- Display paths to config files in full rather than abbreviated. If you have
+  trouble with the password not working please update and make sure the
+  displayed config paths are what you expect.
+
+### Fixed
+
+- Fix some dependency issues for the standalone arm64 and armv7l releases. If
+  you had issues with missing or failing modules please try these new builds.
+
+## [4.16.1](https://github.com/coder/code-server/releases/tag/v4.16.1) - 2023-07-31
+
+Code v1.80.2
+
+### Changed
+
+- Updated to Code 1.80.2.
+
+## [4.16.0](https://github.com/coder/code-server/releases/tag/v4.16.0) - 2023-07-28
+
+Code v1.80.1
+
+### Added
+
+- `--disable-proxy` flag. This disables the domain and path proxies but it does
+  not disable the ports panel in Code. That can be disabled by using
+  `remote.autoForwardPorts=false` in your settings.
+
+## [4.15.0](https://github.com/coder/code-server/releases/tag/v4.15.0) - 2023-07-21
+
+Code v1.80.1
+
+### Changed
+
+- Updated to Code 1.80.1.
+
+### Added
+
+- `--trusted-origin` flag for specifying origins that you trust but do not
+  control (for example a reverse proxy).
+
+Code v1.79.2
+
+## [4.14.1](https://github.com/coder/code-server/releases/tag/v4.14.1) - 2023-06-26
+
+Code v1.79.2
+
+### Security
+
+- Remove extra write permissions on the Node binary bundled with the linux-amd64
+  tarball. If you extract the tar without a umask this could mean the Node
+  binary would be unexpectedly writable.
+
+### Fixed
+
+- Inability to launch multiple instances of code-server for different users.
 
 ### Added
 
 - `--session-socket` CLI flag to configure the location of the session socket.
-  By default it will be placed in `--user-data-dir`.
+  By default it will be placed in `<user data dir>/code-server-ipc.sock`.
 
 ## [4.14.0](https://github.com/coder/code-server/releases/tag/v4.14.0) - 2023-06-16
 
@@ -234,7 +316,7 @@ Code v1.71.0
 
 ### Fixed
 
-- Add flags --unsafe-perm --legacy-peer-deps in `npm-postinstsall.sh` which ensures installing with npm works correctly
+- Add flags --unsafe-perm --legacy-peer-deps in `npm-postinstall.sh` which ensures installing with npm works correctly
 
 ## [4.6.1](https://github.com/coder/code-server/releases/tag/v4.6.1) - 2022-09-31
 

@@ -1,4 +1,3 @@
-import * as bodyParser from "body-parser"
 import * as express from "express"
 import * as http from "http"
 import nodeFetch from "node-fetch"
@@ -43,6 +42,17 @@ describe("proxy", () => {
       codeServer = undefined
     }
     jest.clearAllMocks()
+  })
+
+  it("should return 403 Forbidden if proxy is disabled", async () => {
+    e.get("/wsup", (req, res) => {
+      res.json("you cannot see this")
+    })
+    codeServer = await integration.setup(["--auth=none", "--disable-proxy"], "")
+    const resp = await codeServer.fetch(proxyPath)
+    expect(resp.status).toBe(403)
+    const json = await resp.json()
+    expect(json).toEqual({ error: "Forbidden" })
   })
 
   it("should rewrite the base path", async () => {
@@ -99,7 +109,7 @@ describe("proxy", () => {
   })
 
   it("should allow post bodies", async () => {
-    e.use(bodyParser.json({ strict: false }))
+    e.use(express.json({ strict: false }))
     e.post("/wsup", (req, res) => {
       res.json(req.body)
     })
@@ -116,7 +126,7 @@ describe("proxy", () => {
   })
 
   it("should handle bad requests", async () => {
-    e.use(bodyParser.json({ strict: false }))
+    e.use(express.json({ strict: false }))
     e.post("/wsup", (req, res) => {
       res.json(req.body)
     })
@@ -143,7 +153,7 @@ describe("proxy", () => {
   })
 
   it("should handle errors", async () => {
-    e.use(bodyParser.json({ strict: false }))
+    e.use(express.json({ strict: false }))
     e.post("/wsup", (req, res) => {
       throw new Error("BROKEN")
     })

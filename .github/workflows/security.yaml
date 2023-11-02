@@ -25,30 +25,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Node.js v16
+      - name: Install Node.js v18
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
 
-      - name: Fetch dependencies from cache
-        id: cache-yarn
-        uses: actions/cache@v3
-        with:
-          path: "**/node_modules"
-          key: yarn-build-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-build-
+      - name: Audit yarn for vulnerabilities
+        run: yarn audit
+        if: success()
 
-      - name: Install dependencies
-        if: steps.cache-yarn.outputs.cache-hit != 'true'
-        run: SKIP_SUBMODULE_DEPS=1 yarn --frozen-lockfile
-
-      - name: Audit for vulnerabilities
-        run: yarn _audit
+      - name: Audit npm for vulnerabilities
+        run: npm shrinkwrap && npm audit
         if: success()
 
   trivy-scan-repo:
@@ -59,12 +50,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@e5f43133f6e8736992c9f3c1b3296e24b37e17f2
+        uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -89,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

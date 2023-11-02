@@ -12,7 +12,7 @@ in-between and has web extensions install directly from the marketplace.
 
 This can be tested by setting EXTENSIONS_GALLERY set to:
 
-    '{"serviceUrl": "https://extensions.coder.com/api"}'
+    '{"serviceUrl": "https://my-extensions/api"}'
 
 
 Index: code-server/lib/vscode/src/vs/platform/product/common/product.ts
@@ -40,7 +40,7 @@ Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/server/node/webClientServer.ts
 +++ code-server/lib/vscode/src/vs/server/node/webClientServer.ts
-@@ -111,7 +111,7 @@ export class WebClientServer {
+@@ -113,7 +113,7 @@ export class WebClientServer {
  		const serverRootPath = getRemoteServerRootPath(_productService);
  		this._staticRoute = `${serverRootPath}/static`;
  		this._callbackRoute = `${serverRootPath}/callback`;
@@ -49,7 +49,7 @@ Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
  	}
  
  	/**
-@@ -304,14 +304,7 @@ export class WebClientServer {
+@@ -311,14 +311,7 @@ export class WebClientServer {
  			codeServerVersion: this._productService.codeServerVersion,
  			rootEndpoint: base,
  			embedderIdentifier: 'server-distro',

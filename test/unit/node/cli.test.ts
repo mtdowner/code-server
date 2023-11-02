@@ -47,6 +47,7 @@ describe("parser", () => {
     delete process.env.CS_DISABLE_FILE_DOWNLOADS
     delete process.env.CS_DISABLE_GETTING_STARTED_OVERRIDE
     delete process.env.VSCODE_PROXY_URI
+    delete process.env.CS_DISABLE_PROXY
     console.log = jest.fn()
   })
 
@@ -103,6 +104,8 @@ describe("parser", () => {
 
           "--disable-getting-started-override",
 
+          "--disable-proxy",
+
           ["--session-socket", "/tmp/override-code-server-ipc-socket"],
 
           ["--host", "0.0.0.0"],
@@ -123,6 +126,7 @@ describe("parser", () => {
       },
       "disable-file-downloads": true,
       "disable-getting-started-override": true,
+      "disable-proxy": true,
       enable: ["feature1", "feature2"],
       help: true,
       host: "0.0.0.0",
@@ -389,6 +393,30 @@ describe("parser", () => {
     expect(defaultArgs).toEqual({
       ...defaults,
       "disable-getting-started-override": true,
+    })
+  })
+
+  it("should use env var CS_DISABLE_PROXY", async () => {
+    process.env.CS_DISABLE_PROXY = "1"
+    const args = parse([])
+    expect(args).toEqual({})
+
+    const defaultArgs = await setDefaults(args)
+    expect(defaultArgs).toEqual({
+      ...defaults,
+      "disable-proxy": true,
+    })
+  })
+
+  it("should use env var CS_DISABLE_PROXY set to true", async () => {
+    process.env.CS_DISABLE_PROXY = "true"
+    const args = parse([])
+    expect(args).toEqual({})
+
+    const defaultArgs = await setDefaults(args)
+    expect(defaultArgs).toEqual({
+      ...defaults,
+      "disable-proxy": true,
     })
   })
 
@@ -759,6 +787,50 @@ describe("bindAddrFromArgs", () => {
     }
 
     expect(actual).toStrictEqual(expected)
+  })
+
+  it("should use process.env.CODE_SERVER_HOST if set", () => {
+    const [setValue, resetValue] = useEnv("CODE_SERVER_HOST")
+    setValue("coder")
+
+    const args: UserProvidedArgs = {}
+
+    const addr = {
+      host: "localhost",
+      port: 8080,
+    }
+
+    const actual = bindAddrFromArgs(addr, args)
+    const expected = {
+      host: "coder",
+      port: 8080,
+    }
+
+    expect(actual).toStrictEqual(expected)
+    resetValue()
+  })
+
+  it("should use the args.host over process.env.CODE_SERVER_HOST if both set", () => {
+    const [setValue, resetValue] = useEnv("CODE_SERVER_HOST")
+    setValue("coder")
+
+    const args: UserProvidedArgs = {
+      host: "123.123.123.123",
+    }
+
+    const addr = {
+      host: "localhost",
+      port: 8080,
+    }
+
+    const actual = bindAddrFromArgs(addr, args)
+    const expected = {
+      host: "123.123.123.123",
+      port: 8080,
+    }
+
+    expect(actual).toStrictEqual(expected)
+    resetValue()
   })
 
   it("should use process.env.PORT if set", () => {

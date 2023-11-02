@@ -1,9 +1,8 @@
 import { field, Level, logger } from "@coder/logger"
 import { promises as fs } from "fs"
 import { load } from "js-yaml"
-import * as os from "os"
 import * as path from "path"
-import { generateCertificate, generatePassword, humanPath, paths, splitOnFirstEquals } from "./util"
+import { generateCertificate, generatePassword, paths, splitOnFirstEquals } from "./util"
 import { EditorSessionManagerClient } from "./vscodeSocket"
 
 export enum Feature {
@@ -51,6 +50,7 @@ export interface UserProvidedCodeArgs {
   "disable-file-downloads"?: boolean
   "disable-workspace-trust"?: boolean
   "disable-getting-started-override"?: boolean
+  "disable-proxy"?: boolean
   "session-socket"?: string
 }
 
@@ -79,6 +79,7 @@ export interface UserProvidedArgs extends UserProvidedCodeArgs {
   "bind-addr"?: string
   socket?: string
   "socket-mode"?: string
+  "trusted-origins"?: string[]
   version?: boolean
   "proxy-domain"?: string[]
   "reuse-window"?: boolean
@@ -177,6 +178,10 @@ export const options: Options<Required<UserProvidedArgs>> = {
     type: "boolean",
     description: "Disable the coder/coder override in the Help: Getting Started page.",
   },
+  "disable-proxy": {
+    type: "boolean",
+    description: "Disable domain and path proxy routes.",
+  },
   // --enable can be used to enable experimental features. These features
   // provide no guarantees.
   enable: { type: "string[]" },
@@ -208,6 +213,11 @@ export const options: Options<Required<UserProvidedArgs>> = {
 
   socket: { type: "string", path: true, description: "Path to a socket (bind-addr will be ignored)." },
   "socket-mode": { type: "string", description: "File mode of the socket." },
+  "trusted-origins": {
+    type: "string[]",
+    description:
+      "Disables authenticate origin check for trusted origin. Useful if not able to access reverse proxy configuration.",
+  },
   version: { type: "boolean", short: "v", description: "Display version information." },
   _: { type: "string[]" },
 
@@ -558,6 +568,10 @@ export async function setDefaults(cliArgs: UserProvidedArgs, configArgs?: Config
     args["disable-getting-started-override"] = true
   }
 
+  if (process.env.CS_DISABLE_PROXY?.match(/^(1|true)$/)) {
+    args["disable-proxy"] = true
+  }
+
   const usingEnvHashedPassword = !!process.env.HASHED_PASSWORD
   if (process.env.HASHED_PASSWORD) {
     args["hashed-password"] = process.env.HASHED_PASSWORD
@@ -648,7 +662,7 @@ export async function readConfigFile(configPath?: string): Promise<ConfigArgs> {
     await fs.writeFile(configPath, defaultConfigFile(generatedPassword), {
       flag: "wx", // wx means to fail if the path exists.
     })
-    logger.info(`Wrote default config file to ${humanPath(os.homedir(), configPath)}`)
+    logger.info(`Wrote default config file to ${configPath}`)
   } catch (error: any) {
     // EEXIST is fine; we don't want to overwrite existing configurations.
     if (error.code !== "EEXIST") {
@@ -717,6 +731,9 @@ export function bindAddrFromArgs(addr: Addr, args: UserProvidedArgs): Addr {
   addr = { ...addr }
   if (args["bind-addr"]) {
     addr = parseBindAddr(args["bind-addr"])
+  }
+  if (process.env.CODE_SERVER_HOST) {
+    addr.host = process.env.CODE_SERVER_HOST
   }
   if (args.host) {
     addr.host = args.host
