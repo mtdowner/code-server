@@ -20,6 +20,112 @@ Code v99.99.999
 
 -->
 
+## Unreleased
+
+Code v1.79.2
+
+### Fixed
+
+- Fix being unable to launch multiple instances of code-server for different
+  users.
+
+### Added
+
+- `--session-socket` CLI flag to configure the location of the session socket.
+  By default it will be placed in `--user-data-dir`.
+
+## [4.14.0](https://github.com/coder/code-server/releases/tag/v4.14.0) - 2023-06-16
+
+Code v1.79.2
+
+### Added
+
+- `--domain-proxy` now supports `{{port}}` and `{{host}}` template variables.
+
+### Changed
+
+- Updated to Code 1.79.2
+- Files opened from an external terminal will now open in the most closely
+  related window rather than in the last opened window.
+
+## [4.13.0](https://github.com/coder/code-server/releases/tag/v4.13.0) - 2023-05-19
+
+Code v1.78.2
+
+### Changed
+
+- Updated to Code 1.78.2.
+
+### Fixed
+
+- Proxying files that contain non-ASCII characters.
+- Origin check when X-Forwarded-Host contains comma-separated hosts.
+
+## [4.12.0](https://github.com/coder/code-server/releases/tag/v4.12.0) - 2023-04-21
+
+Code v1.77.3
+
+### Changed
+
+- Updated to Code 1.77.3
+- Ports panel will use domain-based proxy (instead of the default path-based
+  proxy) when set via --proxy-domain.
+- Apply --app-name to the PWA title.
+
+### Added
+
+- Thai translation for login page.
+- Debug logs around the origin security check. If you are getting forbidden
+  errors on web sockets please run code-server with `--log debug` to see why the
+  requests are being blocked.
+
+## [4.11.0](https://github.com/coder/code-server/releases/tag/v4.11.0) - 2023-03-16
+
+Code v1.76.1
+
+### Changed
+
+- Updated to Code 1.76.1
+
+## [4.10.1](https://github.com/coder/code-server/releases/tag/v4.10.1) - 2023-03-04
+
+Code v1.75.1
+
+### Security
+
+Added an origin check to web sockets to prevent cross-site hijacking attacks on
+users using older or niche browser that do not support SameSite cookies and
+attacks across sub-domains that share the same root domain.
+
+The check requires the host header to be set so if you use a reverse proxy
+ensure it forwards that information otherwise web sockets will be blocked.
+
+## [4.10.0](https://github.com/coder/code-server/releases/tag/v4.10.0) - 2023-02-15
+
+Code v1.75.1
+
+### Changed
+
+- Updated to Code 1.75.1
+
+### Removed
+
+- Removed `--link` (was deprecated over thirteen months ago in 4.0.1).
+
+## [4.9.1](https://github.com/coder/code-server/releases/tag/v4.9.1) - 2022-12-15
+
+Code v1.73.1
+
+### Changed
+
+- Updated a couple steps in the build and release process to ensure we're using
+  `npm` and `yarn` consistently depending on the step.
+
+### Fixed
+
+- Fixed an issue with code-server version not displaying in the Help > About window.
+- Fixed terminal not loading on macOS clients.
+
 ## [4.9.0](https://github.com/coder/code-server/releases/tag/v4.9.0) - 2022-12-06
 
 Code v1.73.1
