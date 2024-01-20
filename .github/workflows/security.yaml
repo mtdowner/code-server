@@ -29,10 +29,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Audit yarn for vulnerabilities
         run: yarn audit
@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f
+        uses: aquasecurity/trivy-action@d43c1f16c00cfd3978dde6c07f4bbcf9eb6993ca
         with:
           scan-type: "fs"
           scan-ref: "."

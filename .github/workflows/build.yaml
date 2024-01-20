@@ -45,16 +45,16 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v39
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             docs/**
 
-      - name: Install Node.js v18
+      - name: Install Node.js
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
           cache: "yarn"
 
       - name: Install doctoc
@@ -76,7 +76,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v39
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             ci/helm-chart/**
@@ -107,7 +107,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v39
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             **/*.ts
@@ -115,11 +115,11 @@ jobs:
           files_ignore: |
             lib/vscode/**
 
-      - name: Install Node.js v18
+      - name: Install Node.js
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Fetch dependencies from cache
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -163,18 +163,18 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v39
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             **/*.ts
           files_ignore: |
             lib/vscode/**
 
-      - name: Install Node.js v18
+      - name: Install Node.js
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Fetch dependencies from cache
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -224,10 +224,10 @@ jobs:
       - name: Patch Code
         run: quilt push -a
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
@@ -281,7 +281,7 @@ jobs:
         run: tar -czf package.tar.gz release
 
       - name: Upload npm package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: npm-package
           path: ./package.tar.gz
@@ -298,10 +298,10 @@ jobs:
       - name: Install system dependencies
         run: sudo apt update && sudo apt install -y libkrb5-dev
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
@@ -313,7 +313,7 @@ jobs:
             yarn-build-
 
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-package
 
@@ -337,7 +337,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: failed-test-videos
           path: ./test/test-results
@@ -357,10 +357,10 @@ jobs:
       - name: Install system dependencies
         run: sudo apt update && sudo apt install -y libkrb5-dev
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version-file: .node-version
 
       - name: Fetch dependencies from cache
         id: cache-node-modules
@@ -372,7 +372,7 @@ jobs:
             yarn-build-
 
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-package
 
@@ -420,7 +420,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: failed-test-videos-proxy
           path: ./test/test-results

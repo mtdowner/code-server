@@ -22,6 +22,42 @@ Code v99.99.999
 
 ## Unreleased
 
+## [4.20.0](https://github.com/coder/code-server/releases/tag/v4.20.0) - 2023-12-21
+
+Code v1.85.1
+
+### Added
+
+- New flag `--disable-file-uploads` to disable uploading files to the remote by
+  drag and drop and to disable opening local files via the "show local" button
+  in the file open prompt. Note that you can still open local files by drag and
+  dropping the file onto the editor pane.
+- Added `wget` to the release image.
+
+### Changed
+
+- Updated to Code 1.85.1.
+- The `--disable-file-downloads` flag will now disable the "show local" button
+  in the file save prompt as well.
+- Debian release image updated to use Bookworm.
+
+## [4.19.1](https://github.com/coder/code-server/releases/tag/v4.19.1) - 2023-11-29
+
+Code v1.84.2
+
+### Fixed
+
+- Fixed an issue where parts of the editor would not load (like the file
+  explorer, source control, etc) when using a workspace file.
+
+## [4.19.0](https://github.com/coder/code-server/releases/tag/v4.19.0) - 2023-11-18
+
+Code v1.84.2
+
+### Changed
+
+- Updated to Code 1.84.2.
+
 ## [4.18.0](https://github.com/coder/code-server/releases/tag/v4.18.0) - 2023-10-20
 
 Code v1.83.1

@@ -35,10 +35,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18.15.0"
+          node-version-file: .node-version
 
       - name: Install development tools
         run: |
@@ -60,7 +60,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-release-package
 
@@ -128,7 +128,6 @@ jobs:
       PKG_CONFIG_PATH: ${{ format('/usr/lib/{0}/pkgconfig', matrix.prefix) }}
       TARGET_ARCH: ${{ matrix.apt_arch }}
       npm_config_arch: ${{ matrix.npm_arch }}
-      NODE_VERSION: v18.15.0
       # Not building from source results in an x86_64 argon2, as if
       # npm_config_arch is being ignored.
       npm_config_build_from_source: true
@@ -137,10 +136,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18.15.0"
+          node-version-file: .node-version
 
       - name: Install cross-compiler and system dependencies
         run: |
@@ -162,7 +161,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-release-package
 
@@ -174,8 +173,9 @@ jobs:
 
       - name: Replace node with cross-compile equivalent
         run: |
-          wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-${npm_config_arch}.tar.xz
-          tar -xf node-${NODE_VERSION}-linux-${npm_config_arch}.tar.xz node-${NODE_VERSION}-linux-${npm_config_arch}/bin/node --strip-components=2
+          node_version=$(node --version)
+          wget https://nodejs.org/dist/${node_version}/node-${node_version}-linux-${npm_config_arch}.tar.xz
+          tar -xf node-${node_version}-linux-${npm_config_arch}.tar.xz node-${node_version}-linux-${npm_config_arch}/bin/node --strip-components=2
           mv ./node ./release-standalone/lib/node
 
       # NOTE@jsjoeio - we do this so we can strip out the v
@@ -205,10 +205,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Node.js v18
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "18.15.0"
+          node-version-file: .node-version
 
       - name: Install nfpm
         run: |
@@ -216,8 +216,15 @@ jobs:
           curl -sSfL https://github.com/goreleaser/nfpm/releases/download/v2.3.1/nfpm_2.3.1_`uname -s`_`uname -m`.tar.gz | tar -C ~/.local/bin -zxv nfpm
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      # The version of node-gyp we use depends on distutils but it was removed
+      # in Python 3.12.  It seems to be fixed in the latest node-gyp so when we
+      # next update Node we can probably remove this.  For now, install
+      # setuptools since it contains distutils.
+      - name: Install Python utilities
+        run: python3 -m pip install setuptools
+
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-release-package
 
@@ -258,7 +265,7 @@ jobs:
     needs: npm-version
     steps:
       - name: Download npm package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: npm-release-package
 
@@ -274,7 +281,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Download artifacts
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v3
         id: download
         with:
           branch: ${{ github.ref }}
@@ -311,7 +318,7 @@ jobs:
         run: tar -czf package.tar.gz release
 
       - name: Upload npm package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: npm-release-package
           path: ./package.tar.gz
