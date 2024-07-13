@@ -30,7 +30,7 @@ includes installing instructions based on your operating system.
 ## Node.js version
 
 We use the same major version of Node.js shipped with Code's remote, which is
-currently `18.x`. VS Code also [lists Node.js
+currently `20.x`. VS Code also [lists Node.js
 requirements](https://github.com/microsoft/vscode/wiki/How-to-Contribute#prerequisites).
 
 Using other versions of Node.js [may lead to unexpected
@@ -79,7 +79,7 @@ Proceed to [installing](#installing)
 ## FreeBSD
 
 ```sh
-pkg install -y git python npm-node18 pkgconf
+pkg install -y git python npm-node20 pkgconf
 pkg install -y libinotify
 ```
 
@@ -92,7 +92,7 @@ Installing code-server requires all of the [prerequisites for VS Code developmen
 Next, install code-server with:
 
 ```bash
-npm install --global code-server --unsafe-perm
+npm install --global code-server
 code-server
 # Now visit http://127.0.0.1:8080. Your password is in ~/.config/code-server/config.yaml
 ```
@@ -112,7 +112,7 @@ For help and additional troubleshooting, see [#1397](https://github.com/coder/co
 After adding the dependencies for your OS, install the code-server package globally:
 
 ```bash
-npm install --global code-server --unsafe-perm
+npm install --global code-server
 code-server
 # Now visit http://127.0.0.1:8080. Your password is in ~/.config/code-server/config.yaml
 ```
@@ -144,8 +144,8 @@ To debug installation issues, install with `npm`:
 
 ```shell
 # Uninstall
-npm uninstall --global --unsafe-perm code-server > /dev/null 2>&1
+npm uninstall --global code-server > /dev/null 2>&1
 
 # Install with logging
-npm install --loglevel verbose --global --unsafe-perm code-server
+npm install --loglevel verbose --global code-server
 ```

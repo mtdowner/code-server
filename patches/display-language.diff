@@ -23,14 +23,14 @@ Index: code-server/lib/vscode/src/vs/server/node/serverServices.ts
 +++ code-server/lib/vscode/src/vs/server/node/serverServices.ts
 @@ -11,7 +11,7 @@ import * as path from 'vs/base/common/pa
  import { IURITransformer } from 'vs/base/common/uriIpc';
- import { getMachineId, getSqmMachineId } from 'vs/base/node/id';
+ import { getMachineId, getSqmMachineId, getdevDeviceId } from 'vs/base/node/id';
  import { Promises } from 'vs/base/node/pfs';
 -import { ClientConnectionEvent, IMessagePassingProtocol, IPCServer, StaticRouter } from 'vs/base/parts/ipc/common/ipc';
 +import { ClientConnectionEvent, IMessagePassingProtocol, IPCServer, ProxyChannel, StaticRouter } from 'vs/base/parts/ipc/common/ipc';
  import { ProtocolConstants } from 'vs/base/parts/ipc/common/ipc.net';
  import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
  import { ConfigurationService } from 'vs/platform/configuration/common/configurationService';
-@@ -228,6 +228,9 @@ export async function setupServerService
+@@ -238,6 +238,9 @@ export async function setupServerService
  		const channel = new ExtensionManagementChannel(extensionManagementService, (ctx: RemoteAgentConnectionContext) => getUriTransformer(ctx.remoteAuthority));
  		socketServer.registerChannel('extensions', channel);
  
@@ -53,7 +53,7 @@ Index: code-server/lib/vscode/src/vs/base/common/platform.ts
  export const LANGUAGE_DEFAULT = 'en';
  
  let _isWindows = false;
-@@ -85,17 +83,21 @@ if (typeof navigator === 'object' && !is
+@@ -112,17 +110,21 @@ else if (typeof navigator === 'object' &
  	_isMobile = _userAgent?.indexOf('Mobi') >= 0;
  	_isWeb = true;
  
@@ -83,7 +83,7 @@ Index: code-server/lib/vscode/src/vs/base/common/platform.ts
 +	}
  }
  
- // Native environment
+ // Unknown environment
 Index: code-server/lib/vscode/src/vs/code/browser/workbench/workbench.html
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/code/browser/workbench/workbench.html
@@ -218,9 +218,9 @@ Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
  import { isString } from 'vs/base/common/types';
 +import { getLocaleFromConfig, getNLSConfiguration } from 'vs/server/node/remoteLanguagePacks';
  import { CharCode } from 'vs/base/common/charCode';
- import { getRemoteServerRootPath } from 'vs/platform/remote/common/remoteHosts';
  import { IExtensionManifest } from 'vs/platform/extensions/common/extensions';
-@@ -345,6 +346,8 @@ export class WebClientServer {
+ 
+@@ -348,6 +349,8 @@ export class WebClientServer {
  			callbackRoute: this._callbackRoute
  		};
  
@@ -229,7 +229,7 @@ Index: code-server/lib/vscode/src/vs/server/node/webClientServer.ts
  		const nlsBaseUrl = this._productService.extensionsGallery?.nlsBaseUrl;
  		const values: { [key: string]: string } = {
  			WORKBENCH_WEB_CONFIGURATION: asJSON(workbenchWebConfiguration),
-@@ -353,6 +356,7 @@ export class WebClientServer {
+@@ -356,6 +359,7 @@ export class WebClientServer {
  			WORKBENCH_NLS_BASE_URL: vscodeBase + (nlsBaseUrl ? `${nlsBaseUrl}${!nlsBaseUrl.endsWith('/') ? '/' : ''}${this._productService.commit}/${this._productService.version}/` : ''),
  			BASE: base,
  			VS_BASE: vscodeBase,
@@ -249,8 +249,8 @@ Index: code-server/lib/vscode/src/vs/server/node/serverEnvironmentService.ts
  
  	/* ----- server setup ----- */
  
-@@ -101,6 +102,7 @@ export interface ServerParsedArgs {
- 	'auth'?: string
+@@ -103,6 +104,7 @@ export interface ServerParsedArgs {
+ 	'auth'?: string;
  	'disable-file-downloads'?: boolean;
  	'disable-file-uploads'?: boolean;
 +	'locale'?: string
@@ -261,7 +261,7 @@ Index: code-server/lib/vscode/src/vs/workbench/workbench.web.main.ts
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/workbench.web.main.ts
 +++ code-server/lib/vscode/src/vs/workbench/workbench.web.main.ts
-@@ -50,7 +50,7 @@ import 'vs/workbench/services/dialogs/br
+@@ -52,7 +52,7 @@ import 'vs/workbench/services/dialogs/br
  import 'vs/workbench/services/host/browser/browserHostService';
  import 'vs/workbench/services/lifecycle/browser/lifecycleService';
  import 'vs/workbench/services/clipboard/browser/clipboardService';
@@ -270,7 +270,7 @@ Index: code-server/lib/vscode/src/vs/workbench/workbench.web.main.ts
  import 'vs/workbench/services/path/browser/pathService';
  import 'vs/workbench/services/themes/browser/browserHostColorSchemeService';
  import 'vs/workbench/services/encryption/browser/encryptionService';
-@@ -116,8 +116,9 @@ registerSingleton(ILanguagePackService,
+@@ -118,8 +118,9 @@ registerSingleton(ILanguagePackService,
  // Logs
  import 'vs/workbench/contrib/logs/browser/logs.contribution';
  
@@ -348,17 +348,17 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extens
 ===================================================================
 --- code-server.orig/lib/vscode/src/vs/workbench/contrib/extensions/browser/extensionsActions.ts
 +++ code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extensionsActions.ts
-@@ -321,9 +321,6 @@ export class InstallAction extends Exten
+@@ -411,9 +411,6 @@ export class InstallAction extends Exten
  		if (this.extension.isBuiltin) {
  			return;
  		}
 -		if (this.extensionsWorkbenchService.canSetLanguage(this.extension)) {
 -			return;
 -		}
- 		if (this.extension.state === ExtensionState.Uninstalled && await this.extensionsWorkbenchService.canInstall(this.extension)) {
- 			this.enabled = this.options.installPreReleaseVersion ? this.extension.hasPreReleaseVersion : this.extension.hasReleaseVersion;
- 			this.updateLabel();
-@@ -591,7 +588,7 @@ export abstract class InstallInOtherServ
+ 		if (this.extension.state !== ExtensionState.Uninstalled) {
+ 			return;
+ 		}
+@@ -695,7 +692,7 @@ export abstract class InstallInOtherServ
  		}
  
  		if (isLanguagePackExtension(this.extension.local.manifest)) {
@@ -367,7 +367,7 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extens
  		}
  
  		// Prefers to run on UI
-@@ -1751,17 +1748,6 @@ export class SetLanguageAction extends E
+@@ -1928,17 +1925,6 @@ export class SetLanguageAction extends E
  	update(): void {
  		this.enabled = false;
  		this.class = SetLanguageAction.DisabledClass;
@@ -385,7 +385,7 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extens
  	}
  
  	override async run(): Promise<any> {
-@@ -1778,7 +1764,6 @@ export class ClearLanguageAction extends
+@@ -1955,7 +1941,6 @@ export class ClearLanguageAction extends
  	private static readonly DisabledClass = `${ClearLanguageAction.EnabledClass} disabled`;
  
  	constructor(
@@ -393,7 +393,7 @@ Index: code-server/lib/vscode/src/vs/workbench/contrib/extensions/browser/extens
  		@ILocaleService private readonly localeService: ILocaleService,
  	) {
  		super(ClearLanguageAction.ID, ClearLanguageAction.TITLE.value, ClearLanguageAction.DisabledClass, false);
-@@ -1788,17 +1773,6 @@ export class ClearLanguageAction extends
+@@ -1965,17 +1950,6 @@ export class ClearLanguageAction extends
  	update(): void {
  		this.enabled = false;
  		this.class = ClearLanguageAction.DisabledClass;

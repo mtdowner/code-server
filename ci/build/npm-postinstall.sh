@@ -51,6 +51,18 @@ symlink_bin_script() {
   cd "$oldpwd"
 }
 
+command_exists() {
+  if [ ! "$1" ]; then return 1; fi
+  command -v "$@" > /dev/null
+}
+
+is_root() {
+  if command_exists id && [ "$(id -u)" = 0 ]; then
+    return 0
+  fi
+  return 1
+}
+
 OS="$(os)"
 
 main() {
@@ -64,8 +76,8 @@ main() {
     echo "USE AT YOUR OWN RISK!"
   fi
 
-  if [ "$major_node_version" -ne "${FORCE_NODE_VERSION:-18}" ]; then
-    echo "ERROR: code-server currently requires node v18."
+  if [ "$major_node_version" -ne "${FORCE_NODE_VERSION:-20}" ]; then
+    echo "ERROR: code-server currently requires node v20."
     if [ -n "$FORCE_NODE_VERSION" ]; then
       echo "However, you have overrided the version check to use v$FORCE_NODE_VERSION."
     fi
@@ -75,17 +87,20 @@ main() {
     exit 1
   fi
 
-  case "${npm_config_user_agent-}" in npm*)
-    # We are running under npm.
-    if [ "${npm_config_unsafe_perm-}" != "true" ]; then
-      echo "Please pass --unsafe-perm to npm to install code-server"
-      echo "Otherwise the postinstall script does not have permissions to run"
-      echo "See https://docs.npmjs.com/misc/config#unsafe-perm"
-      echo "See https://stackoverflow.com/questions/49084929/npm-sudo-global-installation-unsafe-perm"
-      exit 1
-    fi
-    ;;
-  esac
+  # Under npm, if we are running as root, we need --unsafe-perm otherwise
+  # post-install scripts will not have sufficient permissions to do their thing.
+  if is_root; then
+    case "${npm_config_user_agent-}" in npm*)
+      if [ "${npm_config_unsafe_perm-}" != "true" ]; then
+        echo "Please pass --unsafe-perm to npm to install code-server"
+        echo "Otherwise post-install scripts will not have permissions to run"
+        echo "See https://docs.npmjs.com/misc/config#unsafe-perm"
+        echo "See https://stackoverflow.com/questions/49084929/npm-sudo-global-installation-unsafe-perm"
+        exit 1
+      fi
+      ;;
+    esac
+  fi
 
   if ! vscode_install; then
     echo "You may not have the required dependencies to build the native modules."
