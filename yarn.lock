@@ -1861,10 +1861,10 @@ https-proxy-agent@^7.0.2, https-proxy-agent@^7.0.3:
     agent-base "^7.0.2"
     debug "4"
 
-i18next@^23.5.1:
-  version "23.11.3"
-  resolved "https://registry.yarnpkg.com/i18next/-/i18next-23.11.3.tgz#d269c9c15bae9d90ab291055cfc433089ca5f77b"
-  integrity sha512-Pq/aSKowir7JM0rj+Wa23Kb6KKDUGno/HjG+wRQu0PxoTbpQ4N89MAT0rFGvXmLkRLNMb1BbBOKGozl01dabzg==
+i18next@^24.0.2:
+  version "24.0.2"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-24.0.2.tgz#00ee14417675e5733902d60e0bbd424c1ecd2a5f"
+  integrity sha512-D88xyIGcWAKwBTAs4RSqASi8NXR/NhCVSTM4LDbdoU8qb/5dcEZjNCLDhtQBB7Epw/Cp1w2vH/3ujoTbqLSs5g==
   dependencies:
     "@babel/runtime" "^7.23.2"
 
